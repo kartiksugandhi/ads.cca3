@@ -1,0 +1,169 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#define ALPHA 26
+#define MOD 1000000007LL
+
+// precomputed factorials & inverse factorials
+static long long *fact = NULL;
+static long long *invfact = NULL;
+static int maxN = 0;
+
+// prefix sums
+static int **pref = NULL;
+static int strLen = 0;
+
+// modular exponentiation
+static long long modexp(long long a, long long e) {
+    long long res = 1 % MOD;
+    a %= MOD;
+    while (e > 0) {
+        if (e & 1) res = (res * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return res;
+}
+
+// modular inverse (MOD assumed prime)
+static long long inv(long long x) {
+    return modexp(x, MOD - 2);
+}
+
+// ensure factorials up to n
+static void precomputeFactorials(int n) {
+    if (n <= maxN) return;
+    fact = realloc(fact, sizeof(long long) * (n + 1));
+    invfact = realloc(invfact, sizeof(long long) * (n + 1));
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    invfact[n] = inv(fact[n]);
+    for (int i = n; i >= 1; i--) {
+        invfact[i - 1] = (invfact[i] * i) % MOD;
+    }
+    maxN = n;
+}
+
+// Initialize with input string s
+void initialize(const char *s) {
+    strLen = strlen(s);
+
+    // check ascii range lowercase a-z only
+    for (int i = 0; i < strLen; i++) {
+        unsigned char c = (unsigned char)s[i];
+        if (c < 'a' || c > 'z') {
+            // invalid character encountered => exit or handle error
+            fprintf(stderr, "Invalid character (non-ASCII lowercase) at position %d: '%c'\n", i, s[i]);
+            // Here we simply exit with error – you could instead print "-1" and exit gracefully.
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // allocate prefix sums
+    pref = malloc((strLen + 1) * sizeof(int *));
+    if (!pref) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i <= strLen; i++) {
+        pref[i] = calloc(ALPHA, sizeof(int));
+        if (!pref[i]) {
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < strLen; i++) {
+        for (int c = 0; c < ALPHA; c++) {
+            pref[i + 1][c] = pref[i][c];
+        }
+        int idx = s[i] - 'a';
+        pref[i + 1][idx]++;
+    }
+
+    // Precompute factorials up to strLen (safe upper bound)
+    precomputeFactorials(strLen);
+}
+
+// Answer query for substring [l..r] inclusive, 0-based indices
+long long answerQuery(int l, int r) {
+    if (l < 0) l = 0;
+    if (r >= strLen) r = strLen - 1;
+    if (l > r) {
+        // empty substring → only one (empty) palindrome
+        return 1;
+    }
+
+    int counts[ALPHA];
+    for (int c = 0; c < ALPHA; c++) {
+        counts[c] = pref[r + 1][c] - pref[l][c];
+    }
+
+    long long F = 0;           // total number of pairs
+    int oddCount = 0;          // how many letters have odd count
+
+    for (int c = 0; c < ALPHA; c++) {
+        F += counts[c] / 2;
+        if (counts[c] % 2 == 1) {
+            oddCount++;
+        }
+    }
+
+    // number of arrangements for left half = F! / ∏( (counts[c]/2)! )
+    long long ways = fact[F];
+    for (int c = 0; c < ALPHA; c++) {
+        long long fc = counts[c] / 2;
+        if (fc > 0) {
+            ways = (ways * invfact[fc]) % MOD;
+        }
+    }
+
+    // if oddCount > 0, you can have a middle letter among the odd ones
+    if (oddCount > 0) {
+        ways = (ways * oddCount) % MOD;
+    }
+
+    return ways;
+}
+
+int main(void) {
+    char *buf = NULL;
+    size_t bufsize = 0;
+    if (getline(&buf, &bufsize, stdin) < 0) {
+        fprintf(stderr, "Failed to read input string\n");
+        return EXIT_FAILURE;
+    }
+    // remove newline if present
+    size_t len = strlen(buf);
+    if (len > 0 && buf[len - 1] == '\n') {
+        buf[len - 1] = '\0';
+    }
+
+    initialize(buf);
+
+    int q;
+    if (scanf("%d", &q) != 1) {
+        fprintf(stderr, "Failed to read number of queries\n");
+        return EXIT_FAILURE;
+    }
+
+    for (int i = 0; i < q; i++) {
+        int l, r;
+        if (scanf("%d %d", &l, &r) != 2) {
+            fprintf(stderr, "Failed to read query %d\n", i + 1);
+            return EXIT_FAILURE;
+        }
+        // convert 1-based input to 0-based
+        l--; r--;
+        long long ans = answerQuery(l, r);
+        printf("%lld\n", ans);
+    }
+
+    // free memory (omitted for brevity)
+    free(buf);
+    return EXIT_SUCCESS;
+}
