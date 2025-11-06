@@ -1,0 +1,126 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#define ALPHA 26
+#define MOD 1000000007
+
+// Precomputed factorials and inverse factorials
+static long long *fact = NULL;
+static long long *invfact = NULL;
+static int maxN = 0;
+
+// Prefix sums of character counts
+static int **pref = NULL;
+static int strLen = 0;
+
+// Modular exponentiation
+static long long modexp(long long a, long long e) {
+    long long res = 1 % MOD;
+    a %= MOD;
+    while (e > 0) {
+        if (e & 1) res = (res * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return res;
+}
+
+// Modular inverse (MOD is prime)
+static long long inv(long long x) {
+    return modexp(x, MOD - 2);
+}
+
+// Precompute factorials up to n
+static void precomputeFactorials(int n) {
+    if (n <= maxN) return;
+    fact = realloc(fact, sizeof(long long) * (n + 1));
+    invfact = realloc(invfact, sizeof(long long) * (n + 1));
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    invfact[n] = inv(fact[n]);
+    for (int i = n; i > 0; i--) {
+        invfact[i - 1] = (invfact[i] * i) % MOD;
+    }
+    maxN = n;
+}
+
+// Initialize with string s
+void initialize(const char *s) {
+    strLen = strlen(s);
+    // allocate prefix sums [0..strLen], each with ALPHA counts
+    pref = malloc((strLen + 1) * sizeof(int *));
+    for (int i = 0; i <= strLen; i++) {
+        pref[i] = calloc(ALPHA, sizeof(int));
+    }
+    // build prefix
+    for (int i = 0; i < strLen; i++) {
+        for (int c = 0; c < ALPHA; c++) {
+            pref[i + 1][c] = pref[i][c];
+        }
+        int idx = s[i] - 'a';
+        if (idx < 0 || idx >= ALPHA) {
+            // invalid input char; you might handle differently
+        } else {
+            pref[i + 1][idx]++;
+        }
+    }
+    // Maximum half‐length we might need is strLen/2 (in worst case all pairs),
+    // but for arrangement we might need ~strLen. So safe to precompute up to strLen.
+    precomputeFactorials(strLen);
+}
+
+// Answer a query for substring [l..r] inclusive, 0‐based
+long long answerQuery(int l, int r) {
+    if (l < 0) l = 0;
+    if (r >= strLen) r = strLen - 1;
+    if (l > r) return 1;  // empty or invalid => one “empty” palindrome
+
+    int counts[ALPHA];
+    for (int c = 0; c < ALPHA; c++) {
+        counts[c] = pref[r + 1][c] - pref[l][c];
+    }
+    // Compute number of pairs f_c = counts[c] / 2, sum F
+    long long F = 0;
+    int oddCount = 0;
+    for (int c = 0; c < ALPHA; c++) {
+        F += counts[c] / 2;
+        if (counts[c] % 2 == 1) oddCount++;
+    }
+
+    // Compute number of ways to arrange the left half:
+    // ways = F! / ( ∏ (f_c)! )  mod
+    long long ways = fact[F];
+    for (int c = 0; c < ALPHA; c++) {
+        long long fc = counts[c] / 2;
+        if (fc > 0) {
+            ways = (ways * invfact[fc]) % MOD;
+        }
+    }
+    // If oddCount > 0, we can have an odd‐length palindrome => choose the middle from one of the oddCount letters
+    if (oddCount > 0) {
+        ways = (ways * oddCount) % MOD;
+    }
+    return ways;
+}
+
+int main(void) {
+    char buf[2000005];  // assume input length up to ~2e6 (adjust as needed)
+    if (scanf("%s", buf) != 1) return 0;
+    initialize(buf);
+    int q;
+    if (scanf("%d", &q) != 1) return 0;
+    for (int i = 0; i < q; i++) {
+        int l, r;
+        scanf("%d %d", &l, &r);
+        // If input uses 1‐based indices, convert:
+        l--; r--;
+        long long ans = answerQuery(l, r);
+        printf("%lld\n", ans);
+    }
+    // free memory (omitted for brevity)
+    return 0;
+}
