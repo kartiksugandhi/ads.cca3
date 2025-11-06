@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+char* highestValuePalindrome(char* s, int n, int k) {
+    char* arr = strdup(s);
+    if (!arr) return NULL;
+
+    int *changed = (int*)calloc(n, sizeof(int));
+    if (!changed) {
+        free(arr);
+        return NULL;
+    }
+
+    int i, j;
+    int diffs = 0;
+
+    // First pass: count how many changes needed to make it a palindrome
+    for (i = 0, j = n - 1; i < j; i++, j--) {
+        if (arr[i] != arr[j]) {
+            diffs++;
+        }
+    }
+    if (diffs > k) {
+        free(arr);
+        free(changed);
+        return strdup("-1");
+    }
+
+    // Second pass: make it palindrome with minimal changes
+    for (i = 0, j = n - 1; i < j; i++, j--) {
+        if (arr[i] != arr[j]) {
+            if (arr[i] > arr[j]) {
+                arr[j] = arr[i];
+            } else {
+                arr[i] = arr[j];
+            }
+            changed[i] = changed[j] = 1;
+            k--;
+        }
+    }
+
+    // Third pass: maximize to 9’s where possible
+    for (i = 0, j = n - 1; i <= j; i++, j--) {
+        if (i == j) {
+            // middle element in an odd-length string
+            if (k > 0 && arr[i] != '9') {
+                arr[i] = '9';
+                k--;
+            }
+        } else {
+            if (arr[i] != '9') {
+                if (changed[i] || changed[j]) {
+                    // only one extra change needed
+                    if (k >= 1) {
+                        arr[i] = arr[j] = '9';
+                        k--;
+                    }
+                } else {
+                    // both unchanged so would cost 2 changes
+                    if (k >= 2) {
+                        arr[i] = arr[j] = '9';
+                        k -= 2;
+                    }
+                }
+            }
+        }
+    }
+
+    free(changed);
+    return arr;
+}
+
+// Example main to test
+int main() {
+    int n, k;
+    if (scanf("%d %d", &n, &k) != 2) {
+        return 1;
+    }
+    char s[100005];
+    if (scanf("%s", s) != 1) {
+        return 1;
+    }
+    char *result = highestValuePalindrome(s, n, k);
+    printf("%s\n", result);
+    free(result);
+    return 0;
+}
