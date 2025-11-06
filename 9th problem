@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXLEN 100000
+
+char a[MAXLEN+5];
+char b[MAXLEN+5];
+char out[2*MAXLEN+5];
+
+int morganAndString(char *s1, char *s2, char *res) {
+    int i = 0, j = 0;
+    int len1 = strlen(s1);
+    int len2 = strlen(s2);
+    int k = 0;
+
+    // Append sentinel 'Z'+1 to each so comparisons beyond end behave
+    s1[len1] = (char)('Z' + 1);
+    s2[len2] = (char)('Z' + 1);
+    s1[len1+1] = '\0';
+    s2[len2+1] = '\0';
+
+    while (i < len1 && j < len2) {
+        if (s1[i] < s2[j]) {
+            res[k++] = s1[i++];
+        } else if (s2[j] < s1[i]) {
+            res[k++] = s2[j++];
+        } else {
+            // s1[i] == s2[j] → look ahead
+            if (strcmp(s1 + i, s2 + j) <= 0) {
+                res[k++] = s1[i++];
+            } else {
+                res[k++] = s2[j++];
+            }
+        }
+    }
+
+    // Append remaining from s1
+    while (i < len1) {
+        res[k++] = s1[i++];
+    }
+    // Append remaining from s2
+    while (j < len2) {
+        res[k++] = s2[j++];
+    }
+    res[k] = '\0';
+
+    return 0;
+}
+
+int main() {
+    int t;
+    if (scanf("%d\n", &t) != 1) {
+        return 1;
+    }
+    while (t--) {
+        if (scanf("%s\n%s\n", a, b) != 2) {
+            return 1;
+        }
+        morganAndString(a, b, out);
+        printf("%s\n", out);
+    }
+    return 0;
+}
