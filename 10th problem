@@ -1,0 +1,54 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define RANGE 100
+
+int* countingSort(int arr[], int n) {
+    int *freq = malloc(RANGE * sizeof(int));
+    if (!freq) {
+        return NULL;
+    }
+    for (int i = 0; i < RANGE; i++) {
+        freq[i] = 0;
+    }
+    for (int i = 0; i < n; i++) {
+        int v = arr[i];
+        if (v >= 0 && v < RANGE) {
+            freq[v]++;
+        }
+        // If needed, else ignore values out of [0,RANGE-1]
+    }
+    return freq;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        return 1;
+    }
+    int *arr = malloc(n * sizeof(int));
+    if (!arr) {
+        return 1;
+    }
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    int *result = countingSort(arr, n);
+    if (!result) {
+        free(arr);
+        return 1;
+    }
+
+    for (int i = 0; i < RANGE; i++) {
+        printf("%d", result[i]);
+        if (i < RANGE - 1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+
+    free(arr);
+    free(result);
+    return 0;
+}
