@@ -1,0 +1,62 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int steadyGene(char* gene) {
+    int n = strlen(gene);
+    int target = n / 4;
+    int cntA = 0, cntC = 0, cntG = 0, cntT = 0;
+    for (int i = 0; i < n; i++) {
+        char c = gene[i];
+        if (c == 'A') cntA++;
+        else if (c == 'C') cntC++;
+        else if (c == 'G') cntG++;
+        else if (c == 'T') cntT++;
+    }
+    // If already steady
+    if (cntA == target && cntC == target && cntG == target && cntT == target) {
+        return 0;
+    }
+    int minLen = n;
+    int left = 0;
+    for (int right = 0; right < n; right++) {
+        char c = gene[right];
+        if (c == 'A') cntA--;
+        else if (c == 'C') cntC--;
+        else if (c == 'G') cntG--;
+        else if (c == 'T') cntT--;
+        // Now try shrinking from left
+        while (left <= right &&
+               cntA <= target && cntC <= target &&
+               cntG <= target && cntT <= target) {
+            int windowLen = right - left + 1;
+            if (windowLen < minLen) {
+                minLen = windowLen;
+            }
+            char c2 = gene[left];
+            if (c2 == 'A') cntA++;
+            else if (c2 == 'C') cntC++;
+            else if (c2 == 'G') cntG++;
+            else if (c2 == 'T') cntT++;
+            left++;
+        }
+    }
+    return minLen;
+}
+
+int main() {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        return 1;
+    }
+    char* gene = malloc((n + 1) * sizeof(char));
+    if (!gene) return 1;
+    if (scanf("%s", gene) != 1) {
+        free(gene);
+        return 1;
+    }
+    int ans = steadyGene(gene);
+    printf("%d\n", ans);
+    free(gene);
+    return 0;
+}
