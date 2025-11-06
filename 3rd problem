@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Returns a newly allocated string (must be freed by caller) containing the result,
+// or "-1" (also newly allocated) if impossible.
+char *highestValuePalindrome(const char *s, int n, int k) {
+    // Duplicate input string (so we can mutate)
+    char *arr = strdup(s);
+    if (!arr) return NULL;
+
+    // Array to mark positions where we made a change in the first pass
+    int *changed = (int *)calloc(n, sizeof(int));
+    if (!changed) {
+        free(arr);
+        return NULL;
+    }
+
+    int i, j;
+    int needChanges = 0;
+
+    // 0) Validate input: only ASCII digits
+    for (i = 0; i < n; i++) {
+        unsigned char c = (unsigned char)arr[i];
+        if (c < '0' || c > '9') {
+            free(arr);
+            free(changed);
+            // Return "-1"
+            char *res = strdup("-1");
+            return res;
+        }
+    }
+
+    // 1) First pass: count how many mismatches (differences) to make it a palindrome
+    for (i = 0, j = n - 1; i < j; i++, j--) {
+        if (arr[i] != arr[j]) {
+            needChanges++;
+        }
+    }
+    if (needChanges > k) {
+        free(arr);
+        free(changed);
+        char *res = strdup("-1");
+        return res;
+    }
+
+    // 2) Make it a palindrome with minimal changes
+    for (i = 0, j = n - 1; i < j; i++, j--) {
+        if (arr[i] != arr[j]) {
+            if (arr[i] > arr[j]) {
+                arr[j] = arr[i];
+            } else {
+                arr[i] = arr[j];
+            }
+            changed[i] = changed[j] = 1;
+            k--;
+        }
+    }
+
+    // 3) Upgrade digits to '9' where possible, to maximize the value
+    for (i = 0, j = n - 1; i <= j; i++, j--) {
+        if (i == j) {
+            // middle element in odd-length string
+            if (k > 0 && arr[i] != '9') {
+                arr[i] = '9';
+                k--;
+            }
+        } else {
+            if (arr[i] != '9') {
+                if (changed[i] || changed[j]) {
+                    // One of them was changed in step 2, so upgrading both costs 1 change
+                    if (k >= 1) {
+                        arr[i] = arr[j] = '9';
+                        k -= 1;
+                    }
+                } else {
+                    // Neither was changed yet, upgrading both costs 2 changes
+                    if (k >= 2) {
+                        arr[i] = arr[j] = '9';
+                        k -= 2;
+                    }
+                }
+            }
+        }
+    }
+
+    free(changed);
+    return arr;
+}
+
+int main(void) {
+    int n, k;
+    if (scanf("%d %d", &n, &k) != 2) {
+        return 1;
+    }
+    char *s = (char *)malloc((n + 1) * sizeof(char));
+    if (!s) return 1;
+    if (scanf("%s", s) != 1) {
+        free(s);
+        return 1;
+    }
+
+    char *result = highestValuePalindrome(s, n, k);
+    if (result) {
+        printf("%s\n", result);
+        free(result);
+    } else {
+        // Memory allocation failure
+        printf("-1\n");
+    }
+
+    free(s);
+    return 0;
+}
