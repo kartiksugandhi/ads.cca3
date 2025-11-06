@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to find the largest rectangle area in a histogram
+long largestRectangle(int h_count, int* h) {
+    long max_area = 0;
+    int* stack = (int*)malloc(h_count * sizeof(int));
+    int top = -1;
+    int i = 0;
+
+    while (i < h_count) {
+        if (top == -1 || h[stack[top]] <= h[i]) {
+            stack[++top] = i++;
+        } else {
+            int tp = stack[top--];
+            long height = h[tp];
+            long width = (top == -1) ? i : i - stack[top] - 1;
+            long area = height * width;
+            if (area > max_area)
+                max_area = area;
+        }
+    }
+
+    while (top != -1) {
+        int tp = stack[top--];
+        long height = h[tp];
+        long width = (top == -1) ? i : i - stack[top] - 1;
+        long area = height * width;
+        if (area > max_area)
+            max_area = area;
+    }
+
+    free(stack);
+    return max_area;
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    int* h = (int*)malloc(n * sizeof(int));
+
+    for (int i = 0; i < n; i++)
+        scanf("%d", &h[i]);
+
+    printf("%ld\n", largestRectangle(n, h));
+
+    free(h);
+    return 0;
+}
